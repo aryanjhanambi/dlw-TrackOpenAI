@@ -1,0 +1,487 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
+    <title>Meridian</title>
+    <link rel="stylesheet" href="style2.css" />
+  </head>
+  <body>
+    <!-- LOGIN TAB (default) -->
+    <main id="loginPage" class="login-page hidden">
+      <div class="login-card">
+        <div class="login-brand">
+          <div class="login-logo" aria-hidden="true">⛨</div>
+          <div>
+            <div class="login-title">Codex Governor</div>
+            <div class="login-sub">Enterprise human-governed AI orchestration</div>
+          </div>
+        </div>
+
+        <h1 class="login-h1">Sign in</h1>
+        <p class="muted login-desc">
+          Enter your details to access your organisation workspace.
+        </p>
+
+        <form id="loginForm" class="form">
+          <label>
+            Name
+            <input required name="name" placeholder="e.g., Haasini" />
+          </label>
+
+          <label>
+            Corporate Email
+            <input required type="email" name="email" placeholder="e.g., lead@company.com" />
+          </label>
+
+          <label>
+            Password
+            <input required type="password" name="password" placeholder="••••••••" />
+          </label>
+
+          <button class="btn btn-primary" type="submit">Continue</button>
+        </form>
+
+        <div id="loginMsg" class="status muted">This is a demo login (local-only).</div>
+
+        <div class="login-foot muted">
+          Tip: This opens the main platform in a new tab after sign-in.
+        </div>
+      </div>
+    </main>
+
+    <!-- APP TAB (#app) -->
+    <div id="appShell" class="hidden">
+      <header class="topbar">
+        <div class="brand">
+          <div class="logo" aria-hidden="true">⛨</div>
+          <div>
+            <div class="brand-name">Codex Governor</div>
+            <div class="brand-sub">Human-governed AI orchestration for the SDLC</div>
+          </div>
+        </div>
+
+        <div class="topbar-right">
+          <div id="userBadge" class="badge hidden"></div>
+          <div id="orgBadge" class="badge hidden"></div>
+
+          <button id="btnExport" class="btn btn-secondary hidden" title="Export all data as JSON">
+            Export
+          </button>
+          <button id="btnLogout" class="btn btn-ghost" title="Log out">Logout</button>
+          <button id="btnReset" class="btn btn-ghost" title="Reset demo data">Reset</button>
+        </div>
+      </header>
+
+      <main class="layout">
+        <aside class="sidebar">
+          <nav class="nav">
+            <button class="nav-item active" data-view="view-onboard">Onboarding</button>
+            <button class="nav-item" data-view="view-org">Organisation Setup</button>
+            <button class="nav-item" data-view="view-workflows">Workflows</button>
+            <button class="nav-item" data-view="view-review">Approval Queue</button>
+            <button class="nav-item" data-view="view-memory">Institutional Memory</button>
+            <button class="nav-item" data-view="view-audit">Audit</button>
+          </nav>
+
+          <div class="sidebar-footer">
+            <div class="mini">
+              <div class="mini-title">Governance signals</div>
+              <div class="mini-row"><span>Policy mode</span><strong id="policyMode">—</strong></div>
+              <div class="mini-row"><span>Approvals required</span><strong id="approvalsRequired">—</strong></div>
+              <div class="mini-row"><span>Dry-run gating</span><strong id="dryRunGating">—</strong></div>
+            </div>
+          </div>
+        </aside>
+
+        <section class="content">
+          <!-- Onboarding -->
+          <div class="card-grid">
+  <div class="card">
+    <h2>Company Access</h2>
+    <p class="muted">Start an organisation session.</p>
+
+    <form id="formEnterprise" class="form">
+      <label>
+        Enterprise ID
+        <input required name="enterpriseId" placeholder="e.g., NTU-DLW-2026-ACME" />
+      </label>
+      <label>
+        Company Name
+        <input required name="companyName" placeholder="e.g., Acme Systems Pte Ltd" />
+      </label>
+      <button class="btn btn-primary" type="submit">Continue</button>
+    </form>
+
+    <div class="hint muted small">
+      Next: configure Lead Engineer + policies in Organisation Setup.
+    </div>
+  </div>
+
+  <div class="card">
+    <h2>What happens next?</h2>
+    <p class="muted">
+      Once the enterprise session is created, the Lead Engineer sets:
+    </p>
+    <ul class="muted">
+      <li>roles & permissions</li>
+      <li>approved languages & formatting</li>
+      <li>security requirements</li>
+      <li>approval + dry-run gating rules</li>
+    </ul>
+  </div>
+</div>
+
+          <!-- Organisation Setup -->
+          <section id="view-org" class="view hidden">
+            <div class="hero">
+              <h1>Organisation Setup</h1>
+              <p>
+                Define roles, permissions, and enforce company policies (languages, formatting, structure, security).
+              </p>
+            </div>
+
+            <div class="card">
+              <h2>Lead Engineer Setup</h2>
+              <p class="muted">
+                Register the Lead Engineer (admin). This governs who can approve/reject outputs.
+              </p>
+
+              <form id="formLead" class="form">
+                <label>
+                  Corporate Email
+                  <input required name="email" type="email" placeholder="lead@company.com" />
+                </label>
+                <label>
+                  Full Name
+                  <input required name="name" placeholder="e.g., Alex Tan" />
+                </label>
+
+                <div class="two-col">
+                  <label>
+                    Default Approvals Required
+                    <select name="approvalsRequired">
+                      <option value="1">1 (Standard)</option>
+                      <option value="2">2 (Sensitive changes)</option>
+                    </select>
+                  </label>
+
+                  <label>
+                    Dry-run Gating
+                    <select name="dryRunGating">
+                      <option value="on">On (recommended)</option>
+                      <option value="off">Off</option>
+                    </select>
+                  </label>
+                </div>
+
+                <button class="btn btn-primary" type="submit">Register Lead Engineer</button>
+              </form>
+
+              <div id="leadStatus" class="status muted">Not registered.</div>
+            </div>            
+            <div class="split">
+              <div class="card">
+                <div class="card-head">
+                  <h2>Company Policies</h2>
+                  <span class="pill">Enforced on every task</span>
+                </div>
+
+                <form id="formPolicies" class="form">
+                  <label>
+                    Approved Programming Languages
+                    <input name="languages" placeholder="e.g., Python, TypeScript, SQL" />
+                  </label>
+
+                  <div class="two-col">
+                    <label>
+                      Code Structure Standard
+                      <select name="structure">
+                        <option value="clean-arch">Clean Architecture</option>
+                        <option value="layered">Layered (MVC)</option>
+                        <option value="modular">Modular Packages</option>
+                        <option value="custom">Custom</option>
+                      </select>
+                    </label>
+
+                    <label>
+                      Formatting Standard
+                      <select name="formatting">
+                        <option value="prettier-black">Prettier + Black</option>
+                        <option value="eslint-ruff">ESLint + Ruff</option>
+                        <option value="company-style">Company Style Guide</option>
+                      </select>
+                    </label>
+                  </div>
+
+                  <label>
+                    Security Requirements (comma-separated)
+                    <input name="security" placeholder="e.g., no hardcoded secrets, OWASP, least privilege" />
+                  </label>
+
+                  <label>
+                    Additional Constraints
+                    <textarea name="constraints" rows="4" placeholder="e.g., migrations require 2 approvals; never touch prod IAM..."></textarea>
+                  </label>
+
+                  <button class="btn btn-primary" type="submit">Save Policies</button>
+                </form>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <h2>Roles & Members</h2>
+                  <span class="pill">Access structure</span>
+                </div>
+
+                <h3>Add Member</h3>
+                <form id="formMember" class="form">
+                  <div class="two-col">
+                    <label>
+                      Name
+                      <input required name="name" placeholder="e.g., Jamie" />
+                    </label>
+                    <label>
+                      Corporate Email
+                      <input required name="email" type="email" placeholder="jamie@company.com" />
+                    </label>
+                  </div>
+
+                  <label>
+                    Role
+                    <select name="role">
+                      <option value="engineer">Engineer</option>
+                      <option value="reviewer">Reviewer</option>
+                      <option value="lead">Lead Engineer</option>
+                    </select>
+                  </label>
+
+                  <button class="btn btn-secondary" type="submit">Add Member</button>
+                </form>
+
+                <div class="table-wrap">
+                  <table class="table" aria-label="Members">
+                    <thead>
+                      <tr><th>Name</th><th>Email</th><th>Role</th><th></th></tr>
+                    </thead>
+                    <tbody id="membersTbody"></tbody>
+                  </table>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Workflows -->
+          <section id="view-workflows" class="view hidden">
+            <div class="hero">
+              <h1>Workflows</h1>
+              <p>
+                Three governed workflows: code generation/modification (core), PowerPoint, and Word documentation.
+                All require approval before release.
+              </p>
+            </div>
+
+            <div class="card">
+              <div class="tabs" role="tablist" aria-label="Workflows">
+                <button class="tab active" data-workflow="code" role="tab">Code (Core)</button>
+                <button class="tab" data-workflow="ppt" role="tab">PowerPoint</button>
+                <button class="tab" data-workflow="doc" role="tab">Word Docs</button>
+              </div>
+
+              <form id="formTask" class="form">
+                <div class="two-col">
+                  <label>
+                    Task Title
+                    <input required name="title" placeholder="e.g., Add RBAC checks to admin routes" />
+                  </label>
+
+                  <label>
+                    SDLC Stage
+                    <select name="stage">
+                      <option value="design">Design</option>
+                      <option value="development">Development</option>
+                      <option value="testing">Testing</option>
+                      <option value="deployment">Deployment</option>
+                      <option value="incident">Incident Response</option>
+                      <option value="communication">Communication</option>
+                      <option value="governance">Governance</option>
+                    </select>
+                  </label>
+                </div>
+
+                <label>
+                  Task Description / Prompt (structured)
+                  <textarea required name="prompt" rows="5" placeholder="Describe the task. Include constraints and expected standards."></textarea>
+                </label>
+
+                <div class="three-col">
+                  <label class="check">
+                    <input type="checkbox" name="impactsProd" />
+                    Impacts production
+                  </label>
+                  <label class="check">
+                    <input type="checkbox" name="touchesSecurity" />
+                    Touches security controls
+                  </label>
+                  <label class="check">
+                    <input type="checkbox" name="touchesData" />
+                    Touches data layer
+                  </label>
+                </div>
+
+                <div class="two-col">
+                  <label>
+                    Repository
+                    <input name="repo" placeholder="e.g., github.com/acme/platform" />
+                  </label>
+                  <label>
+                    Branch
+                    <input name="branch" placeholder="e.g., feature/rbac-guard" />
+                  </label>
+                </div>
+
+                <button class="btn btn-primary" type="submit">Create Governed Task</button>
+              </form>
+            </div>
+
+            <div class="card">
+              <div class="card-head">
+                <h2>Active Tasks</h2>
+                <span class="pill">Pipeline view</span>
+              </div>
+
+              <div id="tasksList" class="tasks"></div>
+            </div>
+          </section>
+
+          <!-- Review -->
+          <section id="view-review" class="view hidden">
+            <div class="hero">
+              <h1>Approval Queue</h1>
+              <p>
+                Mandatory human review. Rejections must include an issue note stored as institutional memory.
+                Approvals produce an auditable confirmation record.
+              </p>
+            </div>
+
+            <div class="split">
+              <div class="card">
+                <h2>Pending Review</h2>
+                <div id="queueList" class="tasks"></div>
+              </div>
+
+              <div class="card">
+                <div class="card-head">
+                  <h2>Review Panel</h2>
+                  <span id="reviewPill" class="pill hidden"></span>
+                </div>
+
+                <div id="reviewEmpty" class="empty">Select a task from the queue to review.</div>
+
+                <div id="reviewPanel" class="hidden">
+                  <div class="kv">
+                    <div><span class="k">Task</span><span class="v" id="rvTitle"></span></div>
+                    <div><span class="k">Workflow</span><span class="v" id="rvWorkflow"></span></div>
+                    <div><span class="k">Stage</span><span class="v" id="rvStage"></span></div>
+                    <div><span class="k">Risk</span><span class="v" id="rvRisk"></span></div>
+                    <div><span class="k">Approvals Required</span><span class="v" id="rvApprovalsReq"></span></div>
+                  </div>
+
+                  <hr class="sep"/>
+
+                  <h3>AI Output (Simulated)</h3>
+                  <pre class="code" id="rvOutput"></pre>
+
+                  <div class="two-col">
+                    <button id="btnDryRun" class="btn btn-secondary" type="button">Run Dry-Run</button>
+                    <div id="dryRunStatus" class="status muted">Dry-run not completed.</div>
+                  </div>
+
+                  <hr class="sep"/>
+
+                  <h3>Decision</h3>
+                  <form id="formDecision" class="form">
+                    <label>
+                      Reviewer Email
+                      <input required name="reviewer" type="email" placeholder="reviewer@company.com" />
+                    </label>
+
+                    <label>
+                      Comment / Rationale (required if rejecting)
+                      <textarea name="comment" rows="3" placeholder="Explain issues, policy violations, security concerns..."></textarea>
+                    </label>
+
+                    <div class="two-col">
+                      <button id="btnReject" class="btn btn-danger" type="button">Reject</button>
+                      <button id="btnApprove" class="btn btn-success" type="button">Approve</button>
+                    </div>
+
+                    <button id="btnDownloadRecord" class="btn btn-primary hidden" type="button">
+                      Download Confirmation Record
+                    </button>
+                  </form>
+                </div>
+              </div>
+            </div>
+          </section>
+
+          <!-- Memory -->
+          <section id="view-memory" class="view hidden">
+            <div class="hero">
+              <h1>Institutional Memory</h1>
+              <p>Search rejection reasons to improve alignment and preserve organisational knowledge.</p>
+            </div>
+
+            <div class="card">
+              <div class="two-col">
+                <label class="grow">
+                  Search
+                  <input id="memorySearch" placeholder="Search by keyword, reviewer, task title..." />
+                </label>
+                <div class="stack">
+                  <div class="muted small">Filter</div>
+                  <select id="memoryFilter">
+                    <option value="all">All workflows</option>
+                    <option value="code">Code</option>
+                    <option value="ppt">PowerPoint</option>
+                    <option value="doc">Word Docs</option>
+                  </select>
+                </div>
+              </div>
+
+              <div id="memoryList" class="memory"></div>
+            </div>
+          </section>
+
+          <!-- Audit -->
+          <section id="view-audit" class="view hidden">
+            <div class="hero">
+              <h1>Audit</h1>
+              <p>Traceability across the SDLC: who approved what, when, and why.</p>
+            </div>
+
+            <div class="card">
+              <div class="two-col">
+                <label class="grow">
+                  Task ID / Title
+                  <input id="auditSearch" placeholder="Search tasks..." />
+                </label>
+                <button id="btnAuditRefresh" class="btn btn-secondary" type="button">Refresh</button>
+              </div>
+
+              <div id="auditList" class="audit"></div>
+            </div>
+          </section>
+        </section>
+      </main>
+
+      <footer class="footer">
+        <span class="muted">Demo frontend • local-only data • built for DL Week</span>
+        <span class="muted">|</span>
+        <span class="muted">Human authority • traceability • intervention</span>
+      </footer>
+    </div>
+
+    <script src="app2.js"></script>
+  </body>
+</html>
