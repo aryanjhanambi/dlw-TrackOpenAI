@@ -1,7 +1,7 @@
-/* Codex Governor — Demo Frontend
+/* Meridian — Demo Frontend
    Behavior:
-   - index2.html (no hash) shows LOGIN tab
-   - after login, opens index2.html#app in a NEW TAB for the real platform
+   - / (no hash) shows LOGIN tab
+   - after login, opens /#app in a NEW TAB for the real platform
    - app tab requires auth session; otherwise redirects back to login
 */
 
@@ -9,45 +9,34 @@
   const STORAGE_KEY = "codex_governor_demo_v2";
   const AUTH_KEY = "codex_governor_auth_v1";
 
+  const routes = {
+    "#/onboarding": "view-onboard",
+    "#/org": "view-org",
+    "#/policy": "view-policy",
+    "#/workflows": "view-workflows",
+    "#/review": "view-review",
+    "#/memory": "view-memory",
+    "#/audit": "view-audit",
+  };
+
   const $ = (sel) => document.querySelector(sel);
   const $$ = (sel) => Array.from(document.querySelectorAll(sel));
 
-  // ---------- Auth + Routing ----------
-  const isAppTab = location.hash === "#app";
-
+  const isAppTab = location.hash.startsWith("#app");
   const auth = loadAuth();
 
   function showLoginTab() {
     $("#loginPage").classList.remove("hidden");
     $("#appShell").classList.add("hidden");
   }
-  window.addEventListener("hashchange", () => {
-    const hash = location.hash; // e.g. "#app#/org"
-    const routePart = hash.replace("#app", "") || "#/onboarding";
-    const viewId = routes[routePart] || "view-onboard";
-    activateNavByView(viewId);
-    showView(viewId);
-  });
 
-  function activateNavByView(viewId){
-    $$(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === viewId));
-  }
   function showAppTab() {
     $("#loginPage").classList.add("hidden");
     $("#appShell").classList.remove("hidden");
-    const routes = {
-      "#/onboarding": "view-onboard",
-      "#/org": "view-org",
-      "#/workflows": "view-workflows",
-      "#/review": "view-review",
-      "#/memory": "view-memory",
-      "#/audit": "view-audit",
-    };    
   }
 
   function requireAuthForApp() {
     if (!auth || !auth.email) {
-      // kick back to login view in same tab
       location.hash = "";
       showLoginTab();
       toast("Please sign in to access the platform.");
@@ -56,16 +45,29 @@
     return true;
   }
 
-  // If this is app tab, enforce auth, else show login
   if (isAppTab) {
-    if (requireAuthForApp()) {
-      showAppTab();
-    }
+    if (requireAuthForApp()) showAppTab();
   } else {
     showLoginTab();
   }
 
-  // ---------- Login form (only exists on login tab) ----------
+  window.addEventListener("hashchange", () => {
+    if (!location.hash.startsWith("#app")) return;
+    const routePart = location.hash.replace("#app", "") || "#/onboarding";
+    if (routePart.startsWith("#/project/")) {
+      const projectId = decodeURIComponent(routePart.slice("#/project/".length));
+      selectedPreviewProjectId = projectId;
+      activateNavByView("");
+      activateProjectSubtab(projectId);
+      showView("view-project-preview");
+      return;
+    }
+    const viewId = routes[routePart] || "view-onboard";
+    activateNavByView(viewId);
+    activateProjectSubtab("");
+    showView(viewId);
+  });
+
   const loginForm = $("#loginForm");
   if (loginForm) {
     loginForm.addEventListener("submit", (e) => {
@@ -75,33 +77,27 @@
       const name = String(fd.get("name") || "").trim();
       const email = String(fd.get("email") || "").trim();
       const password = String(fd.get("password") || "").trim();
-
       if (!name || !email || !password) return;
 
-      // Demo auth: accept anything, store session locally
       saveAuth({ name, email, at: new Date().toISOString() });
-
       $("#loginMsg").textContent = `Signed in as ${name} (${email}). Opening platform...`;
       $("#loginMsg").classList.remove("muted");
 
-      // Open main platform in a new tab
-      window.open("index2.html#app", "_blank", "noopener,noreferrer");
-
+      window.open("/#app", "_blank", "noopener,noreferrer");
       toast("Platform opened in a new tab.");
       e.currentTarget.reset();
     });
   }
 
-  // ---------- Platform state ----------
   const state = loadState();
-
-  // If not app tab, stop here (no need to wire app handlers)
   if (!isAppTab) return;
-
-  // If app tab but auth missing, already handled above
   if (!requireAuthForApp()) return;
 
-  // ---------- Header badges + controls ----------
+  const projectSelect = $("#projectSelect");
+  const btnAddProject = $("#btnAddProject");
+  const projectSubtabs = $("#projectSubtabs");
+  let selectedPreviewProjectId = state.activeProjectId;
+
   $("#btnReset").addEventListener("click", () => {
     localStorage.removeItem(STORAGE_KEY);
     toast("Demo data reset. Refreshing...");
@@ -111,17 +107,41 @@
   $("#btnLogout").addEventListener("click", () => {
     localStorage.removeItem(AUTH_KEY);
     toast("Logged out.");
-    // Go back to login in this same tab
     location.hash = "";
     setTimeout(() => location.reload(), 200);
   });
 
   $("#btnExport").addEventListener("click", () => {
     const blob = new Blob([JSON.stringify(state, null, 2)], { type: "application/json" });
-    downloadBlob(blob, `codex-governor-export-${timestampFileSafe()}.json`);
+    downloadBlob(blob, `meridian-export-${timestampFileSafe()}.json`);
   });
 
-  // ---------- Navigation ----------
+  projectSelect.addEventListener("change", () => {
+    state.activeProjectId = projectSelect.value;
+    selectedPreviewProjectId = state.activeProjectId;
+    saveState(state);
+    selectedReviewTaskId = null;
+    syncHeaderBadges();
+    const routePart = location.hash.replace("#app", "") || "#/workflows";
+    const viewId = routes[routePart] || "view-workflows";
+    showView(viewId);
+  });
+
+  btnAddProject.addEventListener("click", () => {
+    const name = window.prompt("Project name");
+    if (!name || !name.trim()) return;
+    const id = "prj_" + Math.random().toString(36).slice(2, 9);
+    state.projects.push({ id, name: name.trim() });
+    state.activeProjectId = id;
+    selectedPreviewProjectId = id;
+    ensureActiveProjectState();
+    saveState(state);
+    renderProjectPicker();
+    renderProjectSubtabs();
+    syncHeaderBadges();
+    toast(`Project created: ${name.trim()}`);
+  });
+
   $$(".nav-item").forEach((btn) => {
     btn.addEventListener("click", () => {
       $$(".nav-item").forEach((b) => b.classList.remove("active"));
@@ -129,24 +149,34 @@
       showView(btn.dataset.view);
       const targetView = btn.dataset.view;
       const route = Object.keys(routes).find((k) => routes[k] === targetView) || "#/onboarding";
-      location.hash = "#app" + route; // updates URL like #app#/org
+      location.hash = "#app" + route;
     });
   });
 
+  function activateNavByView(viewId){
+    $$(".nav-item").forEach((b) => b.classList.toggle("active", b.dataset.view === viewId));
+  }
+
+  function activateProjectSubtab(projectId) {
+    $$(".project-subtab").forEach((b) => b.classList.toggle("active", b.dataset.projectId === projectId));
+  }
+
   function showView(viewId) {
     $$(".view").forEach((v) => v.classList.add("hidden"));
-    $("#" + viewId).classList.remove("hidden");
+    const target = $("#" + viewId);
+    if (target) target.classList.remove("hidden");
 
     if (viewId === "view-org") renderOrg();
+    if (viewId === "view-policy") renderPolicies();
     if (viewId === "view-workflows") renderTasks();
     if (viewId === "view-review") renderQueue();
     if (viewId === "view-memory") renderMemory();
     if (viewId === "view-audit") renderAudit();
+    if (viewId === "view-project-preview") renderProjectPreview();
 
     syncHeaderBadges();
   }
 
-  // ---------- Onboard: Enterprise ----------
   $("#formEnterprise").addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -160,26 +190,22 @@
     navigateTo("view-org");
   });
 
-  // ---------- Onboard: Lead Engineer ----------
   $("#formLead").addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
-
     const email = String(fd.get("email") || "").trim();
     const name = String(fd.get("name") || "").trim();
     const approvalsRequired = Number(fd.get("approvalsRequired") || 1);
     const dryRunGating = String(fd.get("dryRunGating") || "on");
-
     if (!email || !name) return;
 
-    state.lead = { email, name };
-    state.approvalsRequired = approvalsRequired;
-    state.dryRunGating = dryRunGating === "off" ? "off" : "on";
-
-    // Ensure lead exists as a member
+    const project = currentProjectState();
+    project.lead = { email, name };
+    project.approvalsRequired = approvalsRequired;
+    project.dryRunGating = dryRunGating === "off" ? "off" : "on";
     upsertMember({ name, email, role: "lead" });
 
-    addAuditGlobal("LEAD_REGISTERED", email, { approvalsRequired, dryRunGating: state.dryRunGating });
+    addAuditGlobal("LEAD_REGISTERED", email, { approvalsRequired, dryRunGating: project.dryRunGating });
     saveState(state);
 
     $("#leadStatus").textContent = `Registered: ${name} (${email})`;
@@ -195,12 +221,12 @@
     else showView(viewId);
   }
 
-  // ---------- Org: Policies ----------
   $("#formPolicies").addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
 
-    state.policies = {
+    const project = currentProjectState();
+    project.policies = {
       languages: splitCSV(fd.get("languages")),
       structure: String(fd.get("structure") || "clean-arch"),
       formatting: String(fd.get("formatting") || "prettier-black"),
@@ -208,14 +234,13 @@
       constraints: String(fd.get("constraints") || "").trim(),
     };
 
-    addAuditGlobal("POLICY_UPDATED", state.lead?.email || "system", { policies: state.policies });
+    addAuditGlobal("POLICY_UPDATED", project.lead?.email || "system", { policies: project.policies });
     saveState(state);
     toast("Policies saved.");
-    renderOrg();
+    renderPolicies();
     syncHeaderBadges();
   });
 
-  // ---------- Org: Members ----------
   $("#formMember").addEventListener("submit", (e) => {
     e.preventDefault();
     const fd = new FormData(e.currentTarget);
@@ -227,7 +252,7 @@
     if (!member.name || !member.email) return;
 
     upsertMember(member);
-    addAuditGlobal("MEMBER_UPSERT", state.lead?.email || "lead", { member });
+    addAuditGlobal("MEMBER_UPSERT", currentProjectState().lead?.email || "lead", { member });
     saveState(state);
     e.currentTarget.reset();
     toast("Member added.");
@@ -235,12 +260,12 @@
   });
 
   function upsertMember(member) {
-    const idx = state.members.findIndex((m) => m.email.toLowerCase() === member.email.toLowerCase());
-    if (idx >= 0) state.members[idx] = { ...state.members[idx], ...member };
-    else state.members.push(member);
+    const project = currentProjectState();
+    const idx = project.members.findIndex((m) => m.email.toLowerCase() === member.email.toLowerCase());
+    if (idx >= 0) project.members[idx] = { ...project.members[idx], ...member };
+    else project.members.push(member);
   }
 
-  // ---------- Workflows: Tabs ----------
   let selectedWorkflow = "code";
   $$(".tab").forEach((t) => {
     t.addEventListener("click", () => {
@@ -250,7 +275,6 @@
     });
   });
 
-  // ---------- Workflows: Create task ----------
   $("#formTask").addEventListener("submit", (e) => {
     e.preventDefault();
     if (!requireOrgReady()) return;
@@ -265,10 +289,12 @@
       touchesData: !!fd.get("touchesData"),
       repo: String(fd.get("repo") || "").trim(),
       branch: String(fd.get("branch") || "").trim(),
-      workflow: selectedWorkflow,
+      workflow: "code",
+      codeInput: String(fd.get("codeInput") || "").trim(),
     });
 
-    state.tasks.unshift(task);
+    const project = currentProjectState();
+    project.tasks.unshift(task);
     addAudit(task, "TASK_CREATED", auth.email, { workflow: task.workflow, stage: task.stage });
     saveState(state);
 
@@ -278,11 +304,20 @@
     navigateTo("view-review");
   });
 
-  // ---------- Review panel wiring ----------
+  const codeInputEl = $("#formTask")?.querySelector("[name='codeInput']");
+  if (codeInputEl) {
+    codeInputEl.addEventListener("input", () => {
+      const preview = $("#codePreview");
+      if (!preview) return;
+      const value = String(codeInputEl.value || "").trim();
+      preview.textContent = value || "No code provided yet.";
+    });
+  }
+
   let selectedReviewTaskId = null;
 
   function renderQueue() {
-    const queue = state.tasks.filter((t) => t.status === "PENDING_REVIEW");
+    const queue = currentProjectState().tasks.filter((t) => t.status === "PENDING_REVIEW");
     const el = $("#queueList");
     el.innerHTML = "";
 
@@ -363,7 +398,7 @@
     task.status = "REJECTED";
     task.approvals.push({ reviewer, decision: "REJECT", comment, at: new Date().toISOString() });
 
-    state.memory.unshift({
+    currentProjectState().memory.unshift({
       id: "mem_" + Math.random().toString(36).slice(2, 10),
       taskId: task.id,
       title: task.title,
@@ -395,7 +430,7 @@
 
     if (!reviewer) return toast("Reviewer email is required.");
 
-    if (state.dryRunGating === "on" && task.workflow === "code" && !task.dryRunCompleted) {
+    if (currentProjectState().dryRunGating === "on" && task.workflow === "code" && !task.dryRunCompleted) {
       toast("Dry-run must be completed before approval (policy).");
       return;
     }
@@ -453,7 +488,6 @@
     downloadBlob(blob, `confirmation-${task.id}-${timestampFileSafe()}.json`);
   }
 
-  // ---------- Memory / Audit render ----------
   $("#memorySearch").addEventListener("input", renderMemory);
   $("#memoryFilter").addEventListener("change", renderMemory);
 
@@ -461,7 +495,8 @@
     const q = ($("#memorySearch").value || "").trim().toLowerCase();
     const f = $("#memoryFilter").value;
 
-    const list = state.memory.filter((m) => {
+    const memory = currentProjectState().memory;
+    const list = memory.filter((m) => {
       if (f !== "all" && m.workflow !== f) return false;
       if (!q) return true;
       return (
@@ -476,7 +511,7 @@
     const el = $("#memoryList");
     el.innerHTML = "";
 
-    if (!state.memory.length) {
+    if (!memory.length) {
       el.innerHTML = `<div class="empty">No rejections yet. Rejected outputs will appear here.</div>`;
       return;
     }
@@ -516,7 +551,8 @@
 
   function renderAudit() {
     const q = ($("#auditSearch").value || "").trim().toLowerCase();
-    const tasks = state.tasks.filter((t) => {
+    const projectTasks = currentProjectState().tasks;
+    const tasks = projectTasks.filter((t) => {
       if (!q) return true;
       return (t.id || "").toLowerCase().includes(q) || (t.title || "").toLowerCase().includes(q);
     });
@@ -524,7 +560,7 @@
     const el = $("#auditList");
     el.innerHTML = "";
 
-    if (!state.tasks.length) {
+    if (!projectTasks.length) {
       el.innerHTML = `<div class="empty">No tasks yet. Audit events will appear here.</div>`;
       return;
     }
@@ -547,6 +583,48 @@
     });
   }
 
+  function renderProjectPreview() {
+    const list = $("#projectPreviewList");
+    const title = $("#projectPreviewTitle");
+    if (!list || !title) return;
+
+    const project = projectById(selectedPreviewProjectId);
+    const projectState = projectStateById(selectedPreviewProjectId);
+    title.textContent = `Project Code Preview: ${project?.name || "Unknown Project"}`;
+    list.innerHTML = "";
+
+    if (!projectState) {
+      list.innerHTML = `<div class="empty">Project data not found.</div>`;
+      return;
+    }
+
+    const tasksWithCode = (projectState.tasks || []).filter((t) => String(t.codeInput || "").trim());
+    if (!tasksWithCode.length) {
+      list.innerHTML = `<div class="empty">No code snippets saved for this project yet.</div>`;
+      return;
+    }
+
+    tasksWithCode.forEach((t) => {
+      const item = document.createElement("div");
+      item.className = "mem-item";
+      item.innerHTML = `
+        <div class="mem-top">
+          <div>
+            <div class="mem-title">${escapeHtml(t.title)}</div>
+            <div class="mem-meta">${escapeHtml(workflowLabel(t.workflow))} • Stage: ${escapeHtml(
+        t.stage
+      )} • Task: ${escapeHtml(t.id)}</div>
+          </div>
+          <div class="task-badges">
+            <span class="tag">Status: ${escapeHtml(String(t.status || "unknown").replaceAll("_", " "))}</span>
+          </div>
+        </div>
+        <pre class="code">${escapeHtml(t.codeInput)}</pre>
+      `;
+      list.appendChild(item);
+    });
+  }
+
   function evToHtml(ev) {
     return `
       <div class="event">
@@ -557,11 +635,10 @@
     `;
   }
 
-  // ---------- Tasks pipeline ----------
   function renderTasks() {
     const el = $("#tasksList");
     el.innerHTML = "";
-    const tasks = state.tasks;
+    const tasks = currentProjectState().tasks;
 
     if (!tasks.length) {
       el.innerHTML = `<div class="empty">No tasks yet. Create one from the Workflows tab.</div>`;
@@ -620,16 +697,14 @@
   }
 
   function workflowLabel(w) {
-    if (w === "ppt") return "PowerPoint";
-    if (w === "doc") return "Word Docs";
     return "Code (Core)";
   }
 
-  // ---------- Create task ----------
   function createTask(input) {
     const id = "tsk_" + Math.random().toString(36).slice(2, 10);
     const now = new Date().toISOString();
-    const policies = state.policies || {};
+    const project = currentProjectState();
+    const policies = project.policies || {};
     const risk = riskScore(input, policies);
     const output = simulateOutput(input, policies);
 
@@ -639,6 +714,7 @@
       stage: input.stage,
       workflow: input.workflow,
       prompt: input.prompt,
+      codeInput: input.codeInput || "",
       repo: input.repo || "—",
       branch: input.branch || "—",
       flags: {
@@ -650,7 +726,7 @@
       risk,
       output,
       status: "PENDING_REVIEW",
-      approvalsRequired: state.approvalsRequired || 1,
+      approvalsRequired: project.approvalsRequired || 1,
       approvals: [],
       dryRunCompleted: false,
       createdAt: now,
@@ -662,8 +738,7 @@
 
   function simulateAffectedFiles(workflow) {
     if (workflow === "code") return ["app/api/routes.py", "app/services/auth.py", "tests/test_auth.py"];
-    if (workflow === "ppt") return ["slides/pitch_deck.pptx"];
-    return ["docs/governance_report.docx"];
+    return ["app/api/routes.py", "app/services/auth.py", "tests/test_auth.py"];
   }
 
   function simulateOutput(input, policies) {
@@ -676,44 +751,7 @@
       policies.constraints ? `# constraints: ${policies.constraints}` : "",
     ].filter(Boolean).join("\n");
 
-    if (input.workflow === "code") {
-      return `${policyLine}
-
-# Task: ${input.title}
-# Stage: ${input.stage}
-
-Proposed changes:
-- Implement guarded access based on roles/permissions
-- Follow formatting + structure policies
-- Add tests and dry-run evidence before approval
-
-Diff summary (simulated):
-- app/api/routes.py: add role guard
-- app/services/auth.py: centralized permission check
-- tests/test_auth.py: new tests
-`;
-    }
-    if (input.workflow === "ppt") {
-      return `${policyLine}
-
-PowerPoint Outline (simulated):
-1. Problem: Unsafe autonomous changes
-2. Solution: Human-governed orchestration + policies
-3. Workflows: Code / PPT / Word with approvals
-4. Audit: Confirmation records + traceability
-5. Demo: Reject memory + approval gates
-`;
-    }
-    return `${policyLine}
-
-Word Report Outline (simulated):
-- Executive Summary
-- Governance Model (roles, permissions, policies)
-- Approval Workflow & Evidence
-- Audit Logs & Confirmation Records
-- Institutional Memory (rejection DB)
-- Compliance Appendix
-`;
+    return `${policyLine}\n\n# Task: ${input.title}\n# Stage: ${input.stage}\n\nProposed changes:\n- Implement guarded access based on roles/permissions\n- Follow formatting + structure policies\n- Add tests and dry-run evidence before approval\n\nDiff summary (simulated):\n- app/api/routes.py: add role guard\n- app/services/auth.py: centralized permission check\n- tests/test_auth.py: new tests\n`;
   }
 
   function riskScore(input, policies) {
@@ -740,19 +778,11 @@ Word Report Outline (simulated):
     return { score, level, tags };
   }
 
-  // ---------- Org render ----------
   function renderOrg() {
-    const p = state.policies || {};
-    const form = $("#formPolicies");
-    form.languages.value = (p.languages || []).join(", ");
-    form.structure.value = p.structure || "clean-arch";
-    form.formatting.value = p.formatting || "prettier-black";
-    form.security.value = (p.security || []).join(", ");
-    form.constraints.value = p.constraints || "";
-
+    const project = currentProjectState();
     const tbody = $("#membersTbody");
     tbody.innerHTML = "";
-    state.members.forEach((m) => {
+    project.members.forEach((m) => {
       const tr = document.createElement("tr");
       tr.innerHTML = `
         <td>${escapeHtml(m.name)}</td>
@@ -766,7 +796,7 @@ Word Report Outline (simulated):
     tbody.querySelectorAll("button[data-del]").forEach((b) => {
       b.addEventListener("click", () => {
         const email = b.getAttribute("data-del");
-        state.members = state.members.filter((m) => m.email !== email);
+        project.members = project.members.filter((m) => m.email !== email);
         addAuditGlobal("MEMBER_REMOVED", auth.email, { email });
         saveState(state);
         renderOrg();
@@ -775,34 +805,45 @@ Word Report Outline (simulated):
     });
   }
 
+  function renderPolicies() {
+    const p = currentProjectState().policies || {};
+    const form = $("#formPolicies");
+    if (!form) return;
+    form.languages.value = (p.languages || []).join(", ");
+    form.structure.value = p.structure || "clean-arch";
+    form.formatting.value = p.formatting || "prettier-black";
+    form.security.value = (p.security || []).join(", ");
+    form.constraints.value = p.constraints || "";
+  }
+
   function roleLabel(role) {
     if (role === "lead") return "Lead Engineer";
     if (role === "reviewer") return "Reviewer";
     return "Engineer";
   }
 
-  // ---------- Helpers ----------
   function requireOrgReady() {
     if (!state.enterpriseId || !state.companyName) {
       toast("Complete Enterprise ID + Company Name first.");
       navigateTo("view-onboard");
       return false;
     }
-    if (!state.lead) {
+    const project = currentProjectState();
+    if (!project.lead) {
       toast("Register a Lead Engineer first.");
       navigateTo("view-onboard");
       return false;
     }
-    if (!state.policies || Object.keys(state.policies).length === 0) {
+    if (!project.policies || Object.keys(project.policies).length === 0) {
       toast("Set company policies before creating tasks.");
-      navigateTo("view-org");
+      navigateTo("view-policy");
       return false;
     }
     return true;
   }
 
   function findTask(taskId) {
-    return state.tasks.find((t) => t.id === taskId);
+    return currentProjectState().tasks.find((t) => t.id === taskId);
   }
 
   function touch(task) {
@@ -874,58 +915,156 @@ Word Report Outline (simulated):
       .replaceAll('"', "&quot;")
       .replaceAll("'", "&#039;");
   }
+
   function escapeAttr(str) {
     return escapeHtml(str).replaceAll("`", "&#096;");
   }
 
   function syncHeaderBadges() {
-    // user badge
+    renderProjectPicker();
+    renderProjectSubtabs();
     const userBadge = $("#userBadge");
     userBadge.classList.remove("hidden");
     userBadge.textContent = `${auth.name} • ${auth.email}`;
 
-    // org badge + export
     const orgBadge = $("#orgBadge");
     const exportBtn = $("#btnExport");
 
     if (state.enterpriseId && state.companyName) {
       orgBadge.classList.remove("hidden");
-      orgBadge.textContent = `${state.companyName} • ${state.enterpriseId}`;
+      const activeProject = state.projects.find((p) => p.id === state.activeProjectId);
+      orgBadge.textContent = `${state.companyName} • ${state.enterpriseId} • ${activeProject?.name || "Project"}`;
       exportBtn.classList.remove("hidden");
     } else {
       orgBadge.classList.add("hidden");
       exportBtn.classList.add("hidden");
     }
 
-    $("#policyMode").textContent = state.policies && Object.keys(state.policies).length ? "Enforced" : "—";
-    $("#approvalsRequired").textContent = String(state.approvalsRequired || "—");
-    $("#dryRunGating").textContent = state.dryRunGating ? state.dryRunGating.toUpperCase() : "—";
+    const project = currentProjectState();
+    $("#policyMode").textContent = project.policies && Object.keys(project.policies).length ? "Enforced" : "—";
+    $("#approvalsRequired").textContent = String(project.approvalsRequired || "—");
+    $("#dryRunGating").textContent = project.dryRunGating ? project.dryRunGating.toUpperCase() : "—";
 
-    if (state.lead) {
-      $("#leadStatus").textContent = `Registered: ${state.lead.name} (${state.lead.email})`;
+    if (project.lead) {
+      $("#leadStatus").textContent = `Registered: ${project.lead.name} (${project.lead.email})`;
       $("#leadStatus").classList.remove("muted");
+    } else {
+      $("#leadStatus").textContent = "Not registered.";
+      $("#leadStatus").classList.add("muted");
     }
   }
 
-  // ---------- Persistence ----------
+  function currentProjectState() {
+    ensureActiveProjectState();
+    return state.projectData[state.activeProjectId];
+  }
+
+  function projectById(projectId) {
+    return state.projects.find((p) => p.id === projectId);
+  }
+
+  function projectStateById(projectId) {
+    if (!projectId) return null;
+    if (!state.projectData) return null;
+    return state.projectData[projectId] || null;
+  }
+
+  function ensureActiveProjectState() {
+    if (!Array.isArray(state.projects) || !state.projects.length) {
+      state.projects = [{ id: "core", name: "Core Project" }];
+    }
+    const exists = state.projects.some((p) => p.id === state.activeProjectId);
+    if (!exists) state.activeProjectId = state.projects[0].id;
+    if (!state.projectData) state.projectData = {};
+    if (!state.projectData[state.activeProjectId]) {
+      state.projectData[state.activeProjectId] = {
+        lead: undefined,
+        approvalsRequired: 1,
+        dryRunGating: "on",
+        policies: {},
+        members: [],
+        tasks: [],
+        memory: [],
+      };
+    }
+  }
+
+  function renderProjectPicker() {
+    if (!projectSelect) return;
+    ensureActiveProjectState();
+    projectSelect.innerHTML = state.projects
+      .map((p) => `<option value=\"${escapeAttr(p.id)}\">${escapeHtml(p.name)}</option>`)
+      .join("");
+    projectSelect.value = state.activeProjectId;
+  }
+
+  function renderProjectSubtabs() {
+    if (!projectSubtabs) return;
+    ensureActiveProjectState();
+    projectSubtabs.innerHTML = state.projects
+      .map(
+        (p) =>
+          `<button type=\"button\" class=\"project-subtab\" data-project-id=\"${escapeAttr(
+            p.id
+          )}\">Project: ${escapeHtml(p.name)}</button>`
+      )
+      .join("");
+
+    projectSubtabs.querySelectorAll(".project-subtab").forEach((btn) => {
+      btn.addEventListener("click", () => {
+        const projectId = btn.dataset.projectId || "";
+        if (!projectId) return;
+        selectedPreviewProjectId = projectId;
+        activateNavByView("");
+        activateProjectSubtab(projectId);
+        location.hash = "#app#/project/" + encodeURIComponent(projectId);
+      });
+    });
+
+    activateProjectSubtab(selectedPreviewProjectId || "");
+  }
+
   function loadState() {
     const defaults = {
       enterpriseId: "",
       companyName: "",
-      lead: undefined,
-      approvalsRequired: 1,
-      dryRunGating: "on",
-      policies: {},
-      members: [],
-      tasks: [],
-      memory: [],
+      projects: [{ id: "core", name: "Core Project" }],
+      activeProjectId: "core",
+      projectData: {
+        core: {
+          lead: undefined,
+          approvalsRequired: 1,
+          dryRunGating: "on",
+          policies: {},
+          members: [],
+          tasks: [],
+          memory: [],
+        },
+      },
       _globalAudit: [],
     };
     try {
       const raw = localStorage.getItem(STORAGE_KEY);
       if (!raw) return defaults;
       const parsed = JSON.parse(raw);
-      return { ...defaults, ...parsed };
+      const merged = { ...defaults, ...parsed };
+
+      // Migrate legacy single-project shape into the new per-project container.
+      if ((!merged.projectData || !Object.keys(merged.projectData).length) && (parsed.tasks || parsed.policies || parsed.members)) {
+        merged.projectData = {
+          [merged.activeProjectId || "core"]: {
+            lead: parsed.lead,
+            approvalsRequired: parsed.approvalsRequired || 1,
+            dryRunGating: parsed.dryRunGating || "on",
+            policies: parsed.policies || {},
+            members: parsed.members || [],
+            tasks: parsed.tasks || [],
+            memory: parsed.memory || [],
+          },
+        };
+      }
+
+      return merged;
     } catch {
       return defaults;
     }
@@ -949,18 +1088,28 @@ Word Report Outline (simulated):
     localStorage.setItem(AUTH_KEY, JSON.stringify(session));
   }
 
-  // ---------- Boot ----------
   function boot() {
     syncHeaderBadges();
-
-    // default view
     const routePart = location.hash.replace("#app", "") || "#/onboarding";
-    const viewId = routes[routePart] || "view-onboard";
-    activateNavByView(viewId);
-    showView(viewId);
+    if (routePart.startsWith("#/project/")) {
+      const projectId = decodeURIComponent(routePart.slice("#/project/".length));
+      selectedPreviewProjectId = projectId;
+      activateNavByView("");
+      activateProjectSubtab(projectId);
+      showView("view-project-preview");
+    } else {
+      const viewId = routes[routePart] || "view-onboard";
+      activateNavByView(viewId);
+      activateProjectSubtab("");
+      showView(viewId);
+    }
 
-    // If org already exists, jump to workflows
-    if (state.enterpriseId && state.companyName) {
+    if (
+      state.enterpriseId &&
+      state.companyName &&
+      !routePart.startsWith("#/project/") &&
+      routePart === "#/onboarding"
+    ) {
       showView("view-workflows");
       const btn = document.querySelector('.nav-item[data-view="view-workflows"]');
       if (btn) btn.click();
@@ -969,3 +1118,4 @@ Word Report Outline (simulated):
 
   boot();
 })();
+
