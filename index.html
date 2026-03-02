@@ -4,19 +4,21 @@
     <meta charset="UTF-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0"/>
     <title>Meridian</title>
-    <link rel="stylesheet" href="style.css" />
+    <link rel="stylesheet" href="/prototype/style2.css" />
   </head>
   <body>
     <main id="loginPage" class="login-page hidden">
-      <div class="login-card">
-        <div class="login-brand">
-          <div class="login-logo" aria-hidden="true">⛨</div>
-          <div>
-            <div class="login-title">Meridian</div>
-          <div class="login-sub">Enterprise human-governed AI orchestration</div>
-          </div>
-        </div>
+      <section class="login-hero">
+        <h1 class="login-brandline">
+          <span class="brand-codex">CODEX</span>
+          <span class="brand-x" aria-hidden="true">×</span>
+          <span class="brand-meridian">MERIDIAN</span>
+        </h1>
+        <div class="brand-divider" aria-hidden="true"></div>
+        <p class="login-strap">Leveraging CODEX for your work flow, Meet Meridian</p>
+      </section>
 
+      <div class="login-card">
         <h1 class="login-h1">Sign in</h1>
         <p class="muted login-desc">
           Enter your details to access your organisation workspace.
@@ -41,12 +43,28 @@
           <button class="btn btn-primary" type="submit">Continue</button>
         </form>
 
-        <div id="loginMsg" class="status muted">This is a demo login (local-only).</div>
-
-        <div class="login-foot muted">
-          Tip: This opens the main platform in a new tab after sign-in.
-        </div>
+        <div id="loginMsg" class="status muted hidden"></div>
       </div>
+
+      <section class="trust-marquee-wrap" aria-label="Trusted companies">
+        <div class="trust-marquee-track">
+          <span class="marquee-chip">Google</span>
+          <span class="marquee-chip">Microsoft</span>
+          <span class="marquee-chip">Amazon</span>
+          <span class="marquee-chip">Meta</span>
+          <span class="marquee-chip">Netflix</span>
+          <span class="marquee-chip">Adobe</span>
+          <span class="marquee-chip">OpenAI</span>
+          <span class="marquee-chip">Google</span>
+          <span class="marquee-chip">Microsoft</span>
+          <span class="marquee-chip">Amazon</span>
+          <span class="marquee-chip">Meta</span>
+          <span class="marquee-chip">Netflix</span>
+          <span class="marquee-chip">Adobe</span>
+          <span class="marquee-chip">OpenAI</span>
+        </div>
+      </section>
+      <p class="trusted-caption">trusted by many</p>
     </main>
 
     <div id="appShell" class="hidden">
@@ -60,15 +78,18 @@
         </div>
 
         <div class="topbar-right">
-          <div id="userBadge" class="badge hidden"></div>
-          <div id="orgBadge" class="badge hidden"></div>
-          <select id="projectSelect" class="project-select" aria-label="Select project"></select>
-
-          <button id="btnExport" class="btn btn-secondary hidden" title="Export all data as JSON">
-            Export
-          </button>
-          <button id="btnLogout" class="btn btn-ghost" title="Log out">Logout</button>
-          <button id="btnReset" class="btn btn-ghost" title="Reset demo data">Reset</button>
+          <div class="topbar-meta">
+            <div id="userBadge" class="badge hidden"></div>
+            <div id="orgBadge" class="badge hidden"></div>
+            <select id="projectSelect" class="project-select" aria-label="Select project"></select>
+          </div>
+          <div class="topbar-actions">
+            <button id="btnExport" class="btn btn-secondary hidden" title="Export all data as JSON">
+              Export
+            </button>
+            <button id="btnLogout" class="btn btn-ghost" title="Log out">Logout</button>
+            <button id="btnReset" class="btn btn-ghost" title="Reset demo data">Reset</button>
+          </div>
         </div>
       </header>
 
@@ -112,7 +133,7 @@
                     Company Name
                     <input required name="companyName" placeholder="e.g., Acme Systems Pte Ltd" />
                   </label>
-                  <button class="btn btn-primary" type="submit">Continue</button>
+                  <button class="btn btn-primary" type="submit">Confirm</button>
                 </form>
 
                 <div class="hint muted small">
@@ -132,6 +153,20 @@
                   <li>each project keeps its own tasks, approvals, memory, and audit trail</li>
                   <li>switch projects from the top-right selector anytime</li>
                 </ul>
+              </div>
+            </div>
+            <div class="trust-strip card">
+              <div class="trust-copy">
+                <p class="eyebrow">Trusted By Humans</p>
+                <h3>Policy-first AI orchestration for enterprise engineering teams</h3>
+              </div>
+              <div class="logo-cloud" aria-label="Example enterprise adopters">
+                <span class="logo-chip">Google</span>
+                <span class="logo-chip">Microsoft</span>
+                <span class="logo-chip">Amazon</span>
+                <span class="logo-chip">Stripe</span>
+                <span class="logo-chip">Netflix</span>
+                <span class="logo-chip">Adobe</span>
               </div>
             </div>
           </section>
@@ -162,14 +197,6 @@
 
                 <div class="two-col">
                   <label>
-                    Default Approvals Required
-                    <select name="approvalsRequired">
-                      <option value="1">1 (Standard)</option>
-                      <option value="2">2 (Sensitive changes)</option>
-                    </select>
-                  </label>
-
-                  <label>
                     Dry-run Gating
                     <select name="dryRunGating">
                       <option value="on">On (recommended)</option>
@@ -177,6 +204,7 @@
                     </select>
                   </label>
                 </div>
+                <p class="muted small">Approvals required auto-updates based on roles and members: <strong id="auto-approval-count">1</strong></p>
 
                 <button class="btn btn-primary" type="submit">Register Lead Engineer</button>
               </form>
@@ -224,6 +252,9 @@
                   </table>
                 </div>
               </div>
+            <div class="section-nav">
+              <button id="org-next-btn" class="btn btn-primary" type="button">Next: Company Policy</button>
+            </div>
           </section>
 
           <section id="view-policy" class="view hidden">
@@ -267,6 +298,15 @@
                   </label>
                 </div>
 
+                <div id="custom-structure-wrap" class="hidden">
+                  <label>
+                    Custom Structure Sample Format
+                    <textarea id="custom-structure-sample" name="structureSample" rows="3" placeholder="Provide a short sample structure to enforce..."></textarea>
+                  </label>
+                  <button id="save-structure-sample" class="btn btn-secondary" type="button">Save Sample Format</button>
+                  <div id="structure-sample-status" class="status muted hidden"></div>
+                </div>
+
                 <label>
                   Security Requirements (comma-separated)
                   <input name="security" placeholder="e.g., no hardcoded secrets, OWASP, least privilege" />
@@ -279,6 +319,9 @@
 
                 <button class="btn btn-primary" type="submit">Save Policies</button>
               </form>
+            </div>
+            <div class="section-nav">
+              <button id="policy-next-btn" class="btn btn-primary" type="button">Next: Workflows</button>
             </div>
           </section>
 
@@ -322,6 +365,15 @@
                   <textarea required name="prompt" rows="5" placeholder="Describe the task. Include constraints and expected standards."></textarea>
                 </label>
 
+                <div class="codex-toggle-row">
+                  <input id="useCodex" type="checkbox" name="useCodex" class="hidden-control" />
+                  <button id="codex-toggle-btn" class="codex-toggle-btn" type="button" aria-pressed="false">
+                    Generate Draft With CODEX
+                  </button>
+                  <span id="codex-cost-badge" class="cost-badge">Est. cost: ~$0.0000</span>
+                  <span class="muted small">Runs only when enabled to protect API credits.</span>
+                </div>
+
                 <label>
                   Input Code / Snippet (optional)
                   <textarea name="codeInput" rows="6" placeholder="Paste code here for preview before creating the task..."></textarea>
@@ -335,31 +387,25 @@
                   <pre id="codePreview" class="code">No code provided yet.</pre>
                 </div>
 
-                <div class="three-col">
-                  <label class="check">
-                    <input type="checkbox" name="impactsProd" />
-                    Impacts production
-                  </label>
-                  <label class="check">
-                    <input type="checkbox" name="touchesSecurity" />
-                    Touches security controls
-                  </label>
-                  <label class="check">
-                    <input type="checkbox" name="touchesData" />
-                    Touches data layer
-                  </label>
+                <div class="card codex-steps-card">
+                  <div class="card-head">
+                    <h3>Codex Agent Steps</h3>
+                    <span class="pill">Generation trace</span>
+                  </div>
+                  <ol id="codex-steps-list" class="codex-steps-list">
+                    <li>Codex generation is off. Enable "Generate Draft With CODEX" to see step-by-step execution.</li>
+                  </ol>
                 </div>
 
-                <div class="two-col">
-                  <label>
-                    Repository
-                    <input name="repo" placeholder="e.g., github.com/acme/platform" />
-                  </label>
-                  <label>
-                    Branch
-                    <input name="branch" placeholder="e.g., feature/rbac-guard" />
-                  </label>
-                </div>
+                <label>
+                  Store Code In Project Tab
+                  <div class="target-project-row">
+                    <select id="code-project-target"></select>
+                    <button id="save-code-target" class="btn btn-secondary" type="button">Save Target</button>
+                  </div>
+                </label>
+
+                <div id="aiStatus" class="status muted">Codex generation is optional and off by default to save credits.</div>
 
                 <button class="btn btn-primary" type="submit">Create Governed Task</button>
               </form>
@@ -422,8 +468,8 @@
                   <h3>Decision</h3>
                   <form id="formDecision" class="form">
                     <label>
-                      Reviewer Email
-                      <input required name="reviewer" type="email" placeholder="reviewer@company.com" />
+                      Reviewer
+                      <select id="decision-reviewer" name="reviewer" required></select>
                     </label>
 
                     <label>
@@ -431,7 +477,7 @@
                       <textarea name="comment" rows="3" placeholder="Explain issues, policy violations, security concerns..."></textarea>
                     </label>
 
-                    <div class="two-col">
+                    <div class="decision-actions">
                       <button id="btnReject" class="btn btn-danger" type="button">Reject</button>
                       <button id="btnApprove" class="btn btn-success" type="button">Approve</button>
                     </div>
@@ -491,7 +537,10 @@
 
           <section id="view-project-preview" class="view hidden">
             <div class="hero">
-              <h1 id="projectPreviewTitle">Project Code Preview</h1>
+              <div class="hero-actions">
+                <h1 id="projectPreviewTitle">Project Code Preview</h1>
+                <button id="delete-open-project-btn" class="btn btn-ghost elegant-delete-btn hidden" type="button">Delete This Project</button>
+              </div>
               <p>Review all saved code snippets for this project.</p>
             </div>
 
@@ -503,13 +552,11 @@
       </main>
 
       <footer class="footer">
-        <span class="muted">Demo frontend • local-only data • built for DL Week</span>
-        <span class="muted">|</span>
         <span class="muted">Human authority • traceability • intervention</span>
       </footer>
     </div>
 
-    <script src="app.js"></script>
+    <script src="/prototype/app2.js"></script>
   </body>
 </html>
 
