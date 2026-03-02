@@ -63,10 +63,6 @@ uvicorn app.main:app --reload
 - `OPENAI_MODEL` (optional, default in code)
 - `MERIDIAN_AI_MAX_OUTPUT_TOKENS` (optional)
 
-### Slack integration (optional)
-
-- `SLACK_WEBHOOK_URL`
-- `SLACK_CHANNEL`
 
 ## Main API surfaces
 
